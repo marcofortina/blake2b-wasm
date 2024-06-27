@@ -79,6 +79,7 @@ Blake2b.prototype._realloc = function (size) {
 Blake2b.prototype.update = function (input) {
   assert(this.finalized === false, 'Hash instance finalized')
   assert(input instanceof Uint8Array, 'input must be Uint8Array or Buffer')
+  assert(input.length + head <= 65536000, 'input + head must be of size 65,536,000 or less')
 
   if (head + input.length > this._memory.length) this._realloc(head + input.length)
   this._memory.set(input, head)
@@ -118,7 +119,10 @@ Blake2b.SUPPORTED = typeof WebAssembly !== 'undefined'
 Blake2b.ready = function (cb) {
   if (!cb) cb = noop
   if (!wasmPromise) return cb(new Error('WebAssembly not supported'))
-  return wasmPromise.then(() => cb(), cb)
+  return wasmPromise.then(mod => {
+    Blake2b.WASM = mod
+    cb()
+  }, cb)
 }
 
 Blake2b.prototype.ready = Blake2b.ready
